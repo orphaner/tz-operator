@@ -1,0 +1,16 @@
+domain: kidle.dev
+layout:
+- go.kubebuilder.io/v3
+projectName: tz
+repo: tz
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kidle.dev
+  group: kidle
+  kind: IdlingResource
+  path: tz/api/v1
+  version: v1
+version: "3"
