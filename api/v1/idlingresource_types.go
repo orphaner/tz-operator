@@ -28,18 +28,41 @@ type IdlingResourceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of IdlingResource. Edit idlingresource_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// The reference to the idle-able resource
+	IdlingResourceRef CrossVersionObjectReference `json:"idlingResourceRef"`
+
+	// The desired state of idling. Defaults to false.
+	// +kubebuilder:default:false
+	Idle bool `json:"idle"`
+}
+
+// CrossVersionObjectReference contains enough information to let you identify the referred resource.
+type CrossVersionObjectReference struct {
+	// Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+	Kind string `json:"kind"`
+
+	// Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
+	Name string `json:"name"`
+
+	// API version of the referent
+	// +optional
+	APIVersion string `json:"apiVersion,omitempty"`
 }
 
 // IdlingResourceStatus defines the observed state of IdlingResource
 type IdlingResourceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	PreviousReplicas *int32 `json:"previousReplicas"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=ir
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Idle",type="boolean",JSONPath=".spec.idle"
+// +kubebuilder:printcolumn:name="RefKind",type="string",JSONPath=".spec.idlingResourceRef.kind"
+// +kubebuilder:printcolumn:name="RefName",type="string",JSONPath=".spec.idlingResourceRef.name"
 
 // IdlingResource is the Schema for the idlingresources API
 type IdlingResource struct {
