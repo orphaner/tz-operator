@@ -4,3 +4,8 @@ metadata:
   name: idlingresource-sample
 spec:
   # TODO(user): Add fields here
+  idle: false
+  idlingResourceRef:
+    kind: deployment
+    name: podinfo
+  resumeReplicas: 2

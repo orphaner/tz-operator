@@ -18,8 +18,9 @@ package controllers
 
 import (
 	"context"
-
+	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -47,11 +48,51 @@ type IdlingResourceReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *IdlingResourceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx).WithValues("idlingresource", req.NamespacedName)
+	logger.V(1).Info("Starting reconcile loop")
+	defer logger.V(1).Info("Finish reconcile loop")
 
-	// TODO(user): your logic here
+	var instance kidlev1.IdlingResource
+	if err := r.Get(ctx, req.NamespacedName, &instance); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	var deployment v1.Deployment
+	ref := instance.Spec.IdlingResourceRef
+	key := types.NamespacedName{Namespace: instance.Namespace, Name: ref.Name}
+	if err := r.Get(ctx, key, &deployment); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if needIdle(instance, &deployment) {
+		var replicas int32 = 0
+		deployment.Spec.Replicas = &replicas
+		if err := r.Update(ctx, &deployment); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	if needWakeup(instance, &deployment) {
+		if instance.Spec.ResumeReplicas != nil {
+			deployment.Spec.Replicas = instance.Spec.ResumeReplicas
+		} else {
+			var replicas int32 = 1
+			deployment.Spec.Replicas = &replicas
+		}
+		if err := r.Update(ctx, &deployment); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
+}
+
+func needIdle(instance kidlev1.IdlingResource, deployment *v1.Deployment) bool {
+	return instance.Spec.Idle && *deployment.Spec.Replicas > 0
+}
+
+func needWakeup(instance kidlev1.IdlingResource, deployment *v1.Deployment) bool {
+	return !instance.Spec.Idle && *deployment.Spec.Replicas == 0
 }
 
 // SetupWithManager sets up the controller with the Manager.
