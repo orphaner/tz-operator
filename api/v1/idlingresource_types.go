@@ -34,6 +34,11 @@ type IdlingResourceSpec struct {
 	// The desired state of idling. Defaults to false.
 	// +kubebuilder:default:false
 	Idle bool `json:"idle"`
+
+	// The number of replicas after the wakeup phase
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	ResumeReplicas *int32 `json:"resumeReplicas,omitempty"`
 }
 
 // CrossVersionObjectReference contains enough information to let you identify the referred resource.
