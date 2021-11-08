@@ -67,6 +67,11 @@ spec:
                 - kind
                 - name
                 type: object
+              resumeReplicas:
+                description: The number of replicas after the wakeup phase
+                format: int32
+                minimum: 1
+                type: integer
             required:
             - idle
             - idlingResourceRef
