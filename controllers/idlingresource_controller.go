@@ -65,23 +65,11 @@ func (r *IdlingResourceReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if needIdle(instance, &deployment) {
-		var replicas int32 = 0
-		deployment.Spec.Replicas = &replicas
-		if err := r.Update(ctx, &deployment); err != nil {
-			return ctrl.Result{}, err
-		}
+		return r.idle(ctx, &deployment)
 	}
 
 	if needWakeup(instance, &deployment) {
-		if instance.Spec.ResumeReplicas != nil {
-			deployment.Spec.Replicas = instance.Spec.ResumeReplicas
-		} else {
-			var replicas int32 = 1
-			deployment.Spec.Replicas = &replicas
-		}
-		if err := r.Update(ctx, &deployment); err != nil {
-			return ctrl.Result{}, err
-		}
+		return r.wakeup(ctx, instance, &deployment)
 	}
 
 	return ctrl.Result{}, nil
@@ -91,8 +79,30 @@ func needIdle(instance kidlev1.IdlingResource, deployment *v1.Deployment) bool {
 	return instance.Spec.Idle && *deployment.Spec.Replicas > 0
 }
 
+func (r *IdlingResourceReconciler) idle(ctx context.Context, deployment *v1.Deployment) (ctrl.Result, error) {
+	var replicas int32 = 0
+	deployment.Spec.Replicas = &replicas
+	if err := r.Update(ctx, deployment); err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
+}
+
 func needWakeup(instance kidlev1.IdlingResource, deployment *v1.Deployment) bool {
 	return !instance.Spec.Idle && *deployment.Spec.Replicas == 0
+}
+
+func (r *IdlingResourceReconciler) wakeup(ctx context.Context, instance kidlev1.IdlingResource, deployment *v1.Deployment) (ctrl.Result, error) {
+	if instance.Spec.ResumeReplicas != nil {
+		deployment.Spec.Replicas = instance.Spec.ResumeReplicas
+	} else {
+		var replicas int32 = 1
+		deployment.Spec.Replicas = &replicas
+	}
+	if err := r.Update(ctx, deployment); err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
