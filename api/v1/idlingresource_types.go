@@ -18,6 +18,12 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"tz/utils/array"
+)
+
+const (
+	// IdlingResourceFinalizerName is the name of the idlingresource finalizer
+	IdlingResourceFinalizerName = "idlingresource.finalizers.kidle.kidle.dev"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -76,6 +82,11 @@ type IdlingResource struct {
 
 	Spec   IdlingResourceSpec   `json:"spec,omitempty"`
 	Status IdlingResourceStatus `json:"status,omitempty"`
+}
+
+// HasFinalizer returns true if the item has the specified finalizer
+func (ss *IdlingResource) HasFinalizer(finalizerName string) bool {
+	return array.ContainsString(ss.Finalizers, finalizerName)
 }
 
 //+kubebuilder:object:root=true

@@ -18,12 +18,16 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"tz/utils/array"
 
 	kidlev1 "tz/api/v1"
 )
@@ -62,6 +66,23 @@ func (r *IdlingResourceReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	key := types.NamespacedName{Namespace: instance.Namespace, Name: ref.Name}
 	if err := r.Get(ctx, key, &deployment); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if !instance.HasFinalizer(kidlev1.IdlingResourceFinalizerName) {
+		logger.Info(fmt.Sprintf("AddFinalizer for %v", req.NamespacedName))
+		if err := r.addFinalizer(ctx, &instance); err != nil {
+			return reconcile.Result{}, fmt.Errorf("error when adding finalizer: %v", err)
+		}
+	}
+
+	if !instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if res, err := r.wakeup(ctx, instance, &deployment); err != nil {
+			return res, err
+		}
+		if err := r.removeFinalizer(ctx, &instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error when deleting finalizer: %v", err)
+		}
+		return ctrl.Result{}, nil
 	}
 
 	if needIdle(instance, &deployment) {
@@ -103,6 +124,26 @@ func (r *IdlingResourceReconciler) wakeup(ctx context.Context, instance kidlev1.
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *IdlingResourceReconciler) addFinalizer(ctx context.Context, instance *kidlev1.IdlingResource) error {
+	controllerutil.AddFinalizer(instance, kidlev1.IdlingResourceFinalizerName)
+	err := r.Update(ctx, instance)
+	if err != nil {
+		return fmt.Errorf("failed to update idling resource finalizer: %v", err)
+	}
+	return nil
+}
+
+func (r *IdlingResourceReconciler) removeFinalizer(ctx context.Context, instance *kidlev1.IdlingResource) error {
+	if array.ContainsString(instance.GetFinalizers(), kidlev1.IdlingResourceFinalizerName) {
+		controllerutil.RemoveFinalizer(instance, kidlev1.IdlingResourceFinalizerName)
+		err := r.Update(ctx, instance)
+		if err != nil {
+			return fmt.Errorf("error when removing idling resource finalizer: %v", err)
+		}
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
