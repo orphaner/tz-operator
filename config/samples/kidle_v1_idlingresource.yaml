@@ -9,3 +9,6 @@ spec:
     kind: deployment
     name: podinfo
   resumeReplicas: 2
+  idlingStrategy:
+    cronStrategy:
+      schedule: "*/5 * * * *"

@@ -45,6 +45,22 @@ type IdlingResourceSpec struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=1
 	ResumeReplicas *int32 `json:"resumeReplicas,omitempty"`
+
+	// The idling strategy to use to idle the workload.
+	// +optional
+	IdlingStrategy *IdlingStrategy `json:"idlingStrategy,omitempty"`
+}
+
+// IdlingStrategy holds the possible idling strategies
+type IdlingStrategy struct {
+	// Idle the workload by using a cronjob expression
+	// +optional
+	CronStrategy *CronStrategy `json:"cronStrategy,omitempty"`
+}
+
+type CronStrategy struct {
+	// The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
+	Schedule string `json:"schedule"`
 }
 
 // CrossVersionObjectReference contains enough information to let you identify the referred resource.

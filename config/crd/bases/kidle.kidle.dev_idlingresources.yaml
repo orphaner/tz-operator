@@ -67,6 +67,19 @@ spec:
                 - kind
                 - name
                 type: object
+              idlingStrategy:
+                description: The idling strategy to use to idle the workload.
+                properties:
+                  cronStrategy:
+                    description: Idle the workload by using a cronjob expression
+                    properties:
+                      schedule:
+                        description: The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
+                        type: string
+                    required:
+                    - schedule
+                    type: object
+                type: object
               resumeReplicas:
                 description: The number of replicas after the wakeup phase
                 format: int32
