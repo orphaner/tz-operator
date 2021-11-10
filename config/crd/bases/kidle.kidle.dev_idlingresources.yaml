@@ -28,6 +28,9 @@ spec:
     - jsonPath: .spec.idlingResourceRef.name
       name: RefName
       type: string
+    - jsonPath: .status.previousReplicas
+      name: previousReplicas
+      type: integer
     name: v1
     schema:
       openAPIV3Schema:
