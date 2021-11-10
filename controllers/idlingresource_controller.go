@@ -21,6 +21,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -65,7 +66,7 @@ func (r *IdlingResourceReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if needIdle(instance, &deployment) {
-		return r.idle(ctx, &deployment)
+		return r.idle(ctx, &instance, &deployment)
 	}
 
 	if needWakeup(instance, &deployment) {
@@ -79,10 +80,14 @@ func needIdle(instance kidlev1.IdlingResource, deployment *v1.Deployment) bool {
 	return instance.Spec.Idle && *deployment.Spec.Replicas > 0
 }
 
-func (r *IdlingResourceReconciler) idle(ctx context.Context, deployment *v1.Deployment) (ctrl.Result, error) {
-	var replicas int32 = 0
-	deployment.Spec.Replicas = &replicas
+func (r *IdlingResourceReconciler) idle(ctx context.Context, instance *kidlev1.IdlingResource, deployment *v1.Deployment) (ctrl.Result, error) {
+	instance.Status.PreviousReplicas = deployment.Spec.Replicas
+
+	deployment.Spec.Replicas = pointer.Int32(0)
 	if err := r.Update(ctx, deployment); err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.Status().Update(ctx, instance); err != nil {
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
