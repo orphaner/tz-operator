@@ -242,13 +242,12 @@ func (r *IdlingResourceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *IdlingResourceReconciler) objectForIdlingResourceMapper(object client.Object) []reconcile.Request {
-	ref, found := object.GetAnnotations()["XYYZZZZZZZZZZ"]
-	if !found {
+	if object.GetName() != "podinfo" {
 		return nil
 	}
 
 	reqs := make([]reconcile.Request, 1)
-	reqs[0].NamespacedName.Name = ref
+	reqs[0].NamespacedName.Name = "idlingresource-sample"
 	reqs[0].NamespacedName.Namespace = object.GetNamespace()
 	return reqs
 }
